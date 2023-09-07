@@ -1,5 +1,5 @@
-import React, { createContext, useState, useContext } from "react";
-import Cookies from "js-cookie";
+import React, { createContext, useState, useContext } from 'react';
+import Cookies from 'js-cookie';
 
 const AuthContext = createContext();
 
@@ -8,9 +8,9 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!Cookies.get("jwt_token"));
+  const [isLoggedIn, setIsLoggedIn] = useState(!!Cookies.get('jwt_token'));
 
-  console.log("Rendering AuthProvider with isLoggedIn:", isLoggedIn);
+  console.log('Rendering AuthProvider with isLoggedIn:', isLoggedIn);
 
   const value = {
     isLoggedIn,
