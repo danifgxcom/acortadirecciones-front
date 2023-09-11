@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Tooltip,
   Button,
@@ -8,6 +8,8 @@ import {
   HStack,
   Flex,
   Center,
+  Select,
+  FormLabel,
 } from '@chakra-ui/react';
 import { CopyIcon } from '@chakra-ui/icons';
 import LongUrlDisplay from './LongUrlDisplay';
@@ -21,12 +23,21 @@ const UrlShortener = () => {
   const [resolvedUrl, setResolvedUrl] = useState('');
   const toast = useToast();
   const [isUrlExpanded, setIsUrlExpanded] = useState(false);
+  const [idLength, setIdLength] = useState(32);
+  const [expirationHours, setExpirationHours] = useState(24);
+  const [showExpandButton, setShowExpandButton] = useState(false);
+
+  useEffect(() => {
+    const shouldShowButton = resolvedUrl.length > 50; // Ajusta el 50 según tus necesidades
+    setShowExpandButton(shouldShowButton);
+  }, [resolvedUrl]);
 
   const shortenUrl = async () => {
     try {
       const payload = {
         url,
-        expirationHours: 24,
+        expirationHours: expirationHours,
+        length: idLength,
       };
       const response = await fetch(SHORTEN_API_ENDPOINT, {
         method: 'POST',
@@ -39,12 +50,11 @@ const UrlShortener = () => {
         const data = await response.json();
         setShortUrl(data.shortUrl);
       } else {
-        console.error(
-          `Error from server: ${response.status} ${response.statusText}`,
-        );
+        const errorMessage = await response.text();
+        showToast(`Error: ${errorMessage}`, 'red', 10000);
       }
     } catch (error) {
-      console.error('There was an error shortening the URL:', error);
+      showToast(`Error al acortar la URL: ${error}`, 'red', 10000);
     }
   };
 
@@ -58,21 +68,35 @@ const UrlShortener = () => {
           'Content-Type': 'application/json',
         },
       });
-      const data = await response.json();
-      setResolvedUrl(data.longUrl);
+      if (response.ok) {
+        const data = await response.json();
+        setResolvedUrl(data.longUrl);
+      } else {
+        const errorMessage = await response.text();
+        showToast(`Error: ${errorMessage}`, 'red', 10000);
+      }
     } catch (error) {
-      console.error('There was an error verifying the URL:', error);
+      showToast(`Error al verificar la URL: ${error}`, 'red', 10000);
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shortUrl);
+  const showToast = (message, color, duration = 2000) => {
     toast({
-      title: 'URL copiada',
-      status: 'success',
-      duration: 2000,
+      title: message,
+      status: color === 'red' ? 'error' : 'success',
+      duration: duration,
       isClosable: true,
+      colorScheme: color,
     });
+  };
+  const copyToClipboardShort = () => {
+    navigator.clipboard.writeText(shortUrl);
+    showToast('URL corta copiada', 'blue');
+  };
+
+  const copyToClipboardResolved = () => {
+    navigator.clipboard.writeText(resolvedUrl);
+    showToast('URL resuelta copiada', 'green');
   };
 
   return (
@@ -97,10 +121,54 @@ const UrlShortener = () => {
               bg="blue.100"
               borderColor="blue.500"
             />
-            <Button colorScheme="blue" size="md" onClick={shortenUrl}>
+          </HStack>
+          <HStack spacing={5}>
+            <HStack align="center" minW="220px">
+              <FormLabel
+                fontSize="sm"
+                color="blue.700"
+                m={0}
+                p={0}
+                whiteSpace="nowrap"
+              >
+                Longitud del identificador
+              </FormLabel>
+              <Select
+                w="100px"
+                value={idLength}
+                onChange={(e) => setIdLength(Number(e.target.value))}
+              >
+                <option value={8}>8</option>
+                <option value={16}>16</option>
+                <option value={24}>24</option>
+                <option value={32}>32</option>
+              </Select>
+            </HStack>
+            <HStack align="center" minW="220px">
+              <FormLabel
+                fontSize="sm"
+                color="blue.700"
+                m={0}
+                p={0}
+                whiteSpace="nowrap"
+              >
+                Expiración (en horas)
+              </FormLabel>
+              <Select
+                w="100px"
+                value={expirationHours}
+                onChange={(e) => setExpirationHours(Number(e.target.value))}
+              >
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+                <option value={72}>72</option>
+              </Select>
+            </HStack>
+            <Button flex="1" colorScheme="blue" onClick={shortenUrl}>
               Acortar
             </Button>
           </HStack>
+
           {shortUrl && (
             <HStack>
               <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -110,7 +178,7 @@ const UrlShortener = () => {
                 <CopyIcon
                   boxSize={6}
                   cursor="pointer"
-                  onClick={copyToClipboard}
+                  onClick={copyToClipboardShort}
                 />
               </Tooltip>
             </HStack>
@@ -137,9 +205,21 @@ const UrlShortener = () => {
                   isExpanded={isUrlExpanded}
                 />
               </div>
-              <Button onClick={() => setIsUrlExpanded(!isUrlExpanded)}>
-                {isUrlExpanded ? '-' : '+'}
-              </Button>
+              {showExpandButton && (
+                <Button onClick={() => setIsUrlExpanded(!isUrlExpanded)}>
+                  {isUrlExpanded ? '-' : '+'}
+                </Button>
+              )}
+              <Tooltip
+                label="Copiar al portapapeles"
+                aria-label="Copiar al portapapeles"
+              >
+                <CopyIcon
+                  boxSize={6}
+                  cursor="pointer"
+                  onClick={copyToClipboardResolved}
+                />
+              </Tooltip>
             </HStack>
           )}
         </VStack>

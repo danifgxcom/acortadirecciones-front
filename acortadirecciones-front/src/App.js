@@ -1,6 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from 'react-router-dom';
 import Login from './Login';
+import Logout from './Logout';
 import UrlShortener from './UrlShortener';
 import { useAuth } from './AuthContext';
 
@@ -15,9 +21,17 @@ function App() {
   return (
     <Router>
       <Routes>
-        {isLoggedIn ? <Route path="/" element={<Navigate to="/shorten" />} /> : <Route path="/" element={<Navigate to="/login" />} />}
+        {isLoggedIn ? (
+          <Route path="/" element={<Navigate to="/shorten" />} />
+        ) : (
+          <Route path="/" element={<Navigate to="/login" />} />
+        )}
         <Route path="/login" element={<Login />} />
-        <Route path="/shorten" element={<ProtectedRoute element={<UrlShortener />} />} />
+        <Route path="/logout" element={<Logout />} />
+        <Route
+          path="/shorten"
+          element={<ProtectedRoute element={<UrlShortener />} />}
+        />
       </Routes>
     </Router>
   );

@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 
 function ProtectedRoute({ element }) {
   const { isLoggedIn } = useAuth();
-  return isLoggedIn ? element : <Navigate to="/login" />;
+  return isLoggedIn ? element : <Navigate to="localhost:3000/login" />;
 }
 
 export default ProtectedRoute;

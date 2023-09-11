@@ -7,8 +7,8 @@ const Login = () => {
   };
 
   return (
-    <Center h="100vh" bg="gray.100">
-      <VStack spacing={4}>
+    <Center h="100vh" bgImage={`url('./logo.png')`} bgRepeat="repeat">
+      <VStack spacing={4} zIndex="1">
         <Button onClick={handleGoogleLogin} colorScheme="blue" size="lg">
           Login with Google
         </Button>
