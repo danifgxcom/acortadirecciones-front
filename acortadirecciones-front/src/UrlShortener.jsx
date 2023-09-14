@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import SpinningLoader from './SpinningLoader';
+import Cookies from 'js-cookie';
 import {
   Tooltip,
   Button,
@@ -26,9 +29,57 @@ const UrlShortener = () => {
   const [idLength, setIdLength] = useState(32);
   const [expirationHours, setExpirationHours] = useState(24);
   const [showExpandButton, setShowExpandButton] = useState(false);
+  const [availableLengths, setAvailableLengths] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const { isLoggedIn } = useAuth();
+  const jwtToken = isLoggedIn ? Cookies.get('jwt_token') : '';
+
+  const showToast = useCallback(
+    (message, color, duration = 2000) => {
+      toast({
+        title: message,
+        status: color === 'red' ? 'error' : 'success',
+        duration: duration,
+        isClosable: true,
+        colorScheme: color,
+      });
+    },
+    [toast],
+  );
 
   useEffect(() => {
-    const shouldShowButton = resolvedUrl.length > 50; // Ajusta el 50 según tus necesidades
+    const fetchAvailableLengths = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          'http://localhost:8080/option/available-lengths',
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${jwtToken}`,
+            },
+          },
+        );
+        if (response.ok) {
+          const lengths = await response.json();
+          setAvailableLengths(lengths);
+        } else {
+          const errorMessage = await response.text();
+          showToast(`Error: ${errorMessage}`, 'red', 10000);
+        }
+      } catch (error) {
+        showToast(`Error fetching available lengths: ${error}`, 'red', 10000);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAvailableLengths();
+  }, [jwtToken, showToast]);
+
+  useEffect(() => {
+    const shouldShowButton = resolvedUrl.length > 50;
     setShowExpandButton(shouldShowButton);
   }, [resolvedUrl]);
 
@@ -44,6 +95,7 @@ const UrlShortener = () => {
         body: JSON.stringify(payload),
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwtToken}`,
         },
       });
       if (response.ok) {
@@ -66,6 +118,7 @@ const UrlShortener = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwtToken}`,
         },
       });
       if (response.ok) {
@@ -80,15 +133,6 @@ const UrlShortener = () => {
     }
   };
 
-  const showToast = (message, color, duration = 2000) => {
-    toast({
-      title: message,
-      status: color === 'red' ? 'error' : 'success',
-      duration: duration,
-      isClosable: true,
-      colorScheme: color,
-    });
-  };
   const copyToClipboardShort = () => {
     navigator.clipboard.writeText(shortUrl);
     showToast('URL corta copiada', 'blue');
@@ -133,16 +177,21 @@ const UrlShortener = () => {
               >
                 Longitud del identificador
               </FormLabel>
-              <Select
-                w="100px"
-                value={idLength}
-                onChange={(e) => setIdLength(Number(e.target.value))}
-              >
-                <option value={8}>8</option>
-                <option value={16}>16</option>
-                <option value={24}>24</option>
-                <option value={32}>32</option>
-              </Select>
+              {loading ? (
+                <SpinningLoader />
+              ) : (
+                <Select
+                  w="100px"
+                  value={idLength}
+                  onChange={(e) => setIdLength(Number(e.target.value))}
+                >
+                  {availableLengths.map((length) => (
+                    <option key={length} value={length}>
+                      {length}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </HStack>
             <HStack align="center" minW="220px">
               <FormLabel
